@@ -1,20 +1,23 @@
 services:
   homeassistant:
-    container_name: homeassistant
     image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
     restart: unless-stopped
     privileged: true
+    ports:
+      - 8123:8123
     environment:
       - TZ=Europe/Amsterdam
     volumes:
       - ./data/homeassistant/config:/config
       - /run/dbus:/run/dbus:ro
-    network_mode: host
+
   homebridge:
-    container_name: homebridge
     image: homebridge/homebridge:latest
-    restart: always
-    network_mode: host
+    container_name: homebridge
+    restart: unless-stopped
+    ports:
+      - 8581:8581
     volumes:
       - ./data/homebridge:/homebridge
     logging:
@@ -22,16 +25,113 @@ services:
       options:
         max-size: "10mb"
         max-file: "1"
+
   homarr:
-    container_name: homarr
     image: ghcr.io/ajnart/homarr:latest
+    container_name: homarr
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - 7575:7575
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock # Optional, only if you want docker integration
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./data/homarr/configs:/app/data/configs
       - ./data/homarr/icons:/app/public/icons
       - ./data/homarr/data:/data
+
+  transmission:
+    image: haugene/transmission-openvpn
+    container_name: transmission
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ./data/transmission/data:/data
+      - ./data/transmission/config:/config
+    environment:
+      - OPENVPN_PROVIDER=${OPENVPN_PROVIDER}
+      - OPENVPN_CONFIG=${OPENVPN_CONFIG}
+      - OPENVPN_USERNAME=${OPENVPN_USERNAME}
+      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
+      - LOCAL_NETWORK=192.168.0.0/16
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
     ports:
-      - '7575:7575'
-    
+      - "9091:9091"
+    restart: unless-stopped
+
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=debug
+      - TZ=Europe/Amsterdam
+      - PORT=5055
+    ports:
+      - 5055:5055
+    volumes:
+      - ./data/jellyseerr/app/config:/app/config
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Amsterdam
+    ports:
+      - 9696:9696
+    volumes:
+      - ./data/prowlarr/config:/config
+
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Amsterdam
+    ports:
+      - 7878:7878
+    volumes:
+      - ./data/radarr/config:/config
+      - ./data/radarr/movies:/movies
+      - ./data/radarr/downloads:/downloads
+
+  jellyfin:
+    image: ghcr.io/linuxserver/jellyfin
+    container_name: jellyfin
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Amsterdam
+    ports:
+      - 8096:8096
+      - 8920:8920 #optional
+      - 7359:7359/udp #optional
+      - 1900:1900/udp #optional
+    volumes:
+      - ./data/jellyfin/config:/config
+      - ./data/jellyfin/shows:/data/shows
+      - ./data/jellyfin/movies:/data/movies
+    dns:
+      - 1.1.1.1
+
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Amsterdam
+    ports:
+      - 8989:8989
+    volumes:
+      - ./data/sonarr/config:/config
+      - ./data/sonarr/tv:/tv
+      - ./data/sonarr/downloads:/downloads
