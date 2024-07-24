@@ -22,3 +22,16 @@ services:
       options:
         max-size: "10mb"
         max-file: "1"
+  homarr:
+    container_name: homarr
+    image: ghcr.io/ajnart/homarr:latest
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # Optional, only if you want docker integration
+      - ./data/homarr/configs:/app/data/configs
+      - ./data/homarr/icons:/app/public/icons
+      - ./data/homarr/data:/data
+    ports:
+      - '7575:7575'
+    
