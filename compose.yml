@@ -1,0 +1,24 @@
+services:
+  homeassistant:
+    container_name: homeassistant
+    image: ghcr.io/home-assistant/home-assistant:stable
+    restart: unless-stopped
+    privileged: true
+    environment:
+      - TZ=Europe/Amsterdam
+    volumes:
+      - ./data/homeassistant/config:/config
+      - /run/dbus:/run/dbus:ro
+    network_mode: host
+  homebridge:
+    container_name: homebridge
+    image: homebridge/homebridge:latest
+    restart: always
+    network_mode: host
+    volumes:
+      - ./data/homebridge:/homebridge
+    logging:
+      driver: json-file
+      options:
+        max-size: "10mb"
+        max-file: "1"
