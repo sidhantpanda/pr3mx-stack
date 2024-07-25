@@ -10,7 +10,7 @@
 ### Instructions:
 1. Clone the repository
 2. Copy the `.env.example` file to `.env` and fill in the required values
-2. Run `docker-compose up -d` in the root directory of the repository
+2. Run `docker compose up -d` in the root directory of the repository
 
 ---
 
