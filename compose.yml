@@ -26,26 +26,15 @@ services:
         max-size: "10mb"
         max-file: "1"
 
-  homarr:
-    image: ghcr.io/ajnart/homarr:latest
-    container_name: homarr
-    restart: unless-stopped
-    ports:
-      - 7575:7575
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./data/homarr/configs:/app/data/configs
-      - ./data/homarr/icons:/app/public/icons
-      - ./data/homarr/data:/data
-
   transmission:
     image: haugene/transmission-openvpn
     container_name: transmission
     cap_add:
       - NET_ADMIN
     volumes:
-      - ./data/transmission/data:/data
-      - ./data/transmission/config:/config
+      - ${COMMON_PATH}:${COMMON_PATH}
+      - ${COMMON_PATH}/configs/transmission/config:/config
+      - ${COMMON_PATH}/transmission/downloads:/data
     environment:
       - OPENVPN_PROVIDER=${OPENVPN_PROVIDER}
       - OPENVPN_CONFIG=${OPENVPN_CONFIG}
@@ -60,6 +49,19 @@ services:
       - "9091:9091"
     restart: unless-stopped
 
+  homarr:
+    image: ghcr.io/ajnart/homarr:latest
+    container_name: homarr
+    restart: unless-stopped
+    ports:
+      - 7575:7575
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${COMMON_PATH}:${COMMON_PATH}
+      - ${COMMON_PATH}/configs/homarr/configs:/app/data/configs
+      - ${COMMON_PATH}/homarr/icons:/app/public/icons
+      - ${COMMON_PATH}/homarr/data:/data
+
   jellyseerr:
     image: fallenbagel/jellyseerr:latest
     container_name: jellyseerr
@@ -71,7 +73,10 @@ services:
     ports:
       - 5055:5055
     volumes:
-      - ./data/jellyseerr/app/config:/app/config
+      - ${COMMON_PATH}/configs/jellyseerr/app/config:/app/config
+    depends_on: 
+      - sonarr
+      - radarr
 
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
@@ -84,7 +89,7 @@ services:
     ports:
       - 9696:9696
     volumes:
-      - ./data/prowlarr/config:/config
+      - ${COMMON_PATH}/configs/prowlarr/config:/config
 
   radarr:
     image: linuxserver/radarr
@@ -97,10 +102,35 @@ services:
     ports:
       - 7878:7878
     volumes:
-      - ./data/radarr/config:/config
-      - ./data/radarr/movies:/movies
-      - ./data/radarr/downloads:/downloads
+      - ${COMMON_PATH}:${COMMON_PATH}
+      - ${COMMON_PATH}/configs/radarr/config:/config
+      - ${COMMON_PATH}/radarr/movies:/movies
+      - ${COMMON_PATH}/transmission/downloads:/downloads
+    depends_on:
+      - prowlarr
+      - transmission
+      - jellyfin
 
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Amsterdam
+    ports:
+      - 8989:8989
+    volumes:
+      - ${COMMON_PATH}:${COMMON_PATH}
+      - ${COMMON_PATH}/configs/sonarr:/config
+      - ${COMMON_PATH}/sonarr/tv:/tv
+      - ${COMMON_PATH}/transmission/downloads:/downloads
+    depends_on:
+      - prowlarr
+      - transmission
+      - jellyfin
+  
   jellyfin:
     image: ghcr.io/linuxserver/jellyfin
     container_name: jellyfin
@@ -115,23 +145,9 @@ services:
       - 7359:7359/udp #optional
       - 1900:1900/udp #optional
     volumes:
-      - ./data/jellyfin/config:/config
-      - ./data/jellyfin/shows:/data/shows
-      - ./data/jellyfin/movies:/data/movies
-    dns:
-      - 1.1.1.1
-
-  sonarr:
-    image: linuxserver/sonarr
-    container_name: sonarr
-    restart: unless-stopped
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Amsterdam
-    ports:
-      - 8989:8989
-    volumes:
-      - ./data/sonarr/config:/config
-      - ./data/sonarr/tv:/tv
-      - ./data/sonarr/downloads:/downloads
+      - ${COMMON_PATH}:${COMMON_PATH}
+      - ${COMMON_PATH}/configs/jellyfin/confign:/config
+      - ${COMMON_PATH}/jellyfin/cache:/cache
+      - ${COMMON_PATH}/sonarr/tv:/data/tvshows
+      - ${COMMON_PATH}/radarr/movies:/data/movies
+      - ${COMMON_PATH}/transmission/downloads:/data/media_downloads
